@@ -1,68 +1,71 @@
 
-📊 Automated Price Comparison Using Selenium & TestNG
+📊 Price Comparison Automation
 
-This project automates the comparison of a single product’s price across three different e-commerce websites.
-Using Selenium WebDriver, TestNG, and the @Factory annotation, the framework generates one test instance per website for scalable and maintainable automation.
+(Java + Playwright + TestNG + @Factory)
 
-After the tests run, a summary is produced showing:
-	•	Cheapest price
-	•	Most expensive price
-	•	Average price
-	•	All collected prices
+This project automates price comparison for the same product across multiple e-commerce websites using Playwright for Java and TestNG.
+It dynamically generates one test per website, extracts prices, and produces a summary with:
+	•	💰 Cheapest price
+	•	💵 Most expensive price
+	•	📈 Average price
+	•	📝 Price list per website
+
+Playwright’s built-in auto-wait system makes the automation highly stable and faster than Selenium.
 
 ⸻
 
-Project Overview
+⚙️ How the Framework Works
 
-1. Test Generation (@Factory)
+🧩 1. Test Generation (@Factory)
 
-PriceCheckFactory creates a PriceCheckTest instance for each website, containing:
+PriceCheckFactory creates one test instance per website.
+Each instance contains:
 	•	Website name
 	•	Product URL
-	•	Price locator
-
-This makes the suite easy to extend to more sites.
+	•	Locator strategy (text=TL — ideal for Turkish e-commerce)
 
 ⸻
 
-2. Automated Price Extraction
+🕹️ 2. Playwright Price Extraction
 
 Each PriceCheckTest:
-	•	Launches Selenium WebDriver
-	•	Opens the product page
-	•	Locates and extracts the displayed price
-	•	Parses the numeric value
-	•	Stores it in PriceReport
+	1.	Launches a Playwright browser
+	2.	Navigates to the product page
+	3.	Locates the first element containing “TL”
+	4.	Cleans and parses the price into a number
+	5.	Saves it into PriceReport
+
+Playwright auto-waits for elements, eliminating timing issues.
 
 ⸻
 
-3. Final Summary Report
+📊 3. Final Summary Report
 
-FinalReportTest runs after the entire suite completes and prints a clean, aggregated comparison.
+After all tests finish, FinalReportTest prints a clean summary:
+	•	Full list of collected prices
+	•	Minimum price
+	•	Maximum price
+	•	Average price
 
 ⸻
 
-▶️ How to Run
+▶️ Running the Tests
 
-Use Maven to execute all tests:
+To run the entire suite:
 
 mvn test
 
-
 ⸻
 
-🛠️ Technologies Used
-	•	Java
-	•	Selenium WebDriver
-	•	TestNG
-	•	WebDriverManager
-	•	Maven
+🛠️ Tech Stack
+
+Component	Technology
+Language	Java 23
+Automation	Playwright for Java
+Test Runner	TestNG
+Build Tool	Maven
+Pattern	TestNG @Factory (dynamic test generation)
+
 
 ⸻
-
-📌 Notes
-	•	Designed for easy expansion — add more sites by creating additional configurations.
-	•	Price parsing may require small adjustments depending on website currency format.
-	•	Locators should always be confirmed using browser DevTools.
-
 
