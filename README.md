@@ -2,46 +2,53 @@
 📊 Automated Price Comparison Using Selenium & TestNG
 
 This project automates the comparison of a single product’s price across three different e-commerce websites.
-Using Selenium WebDriver, TestNG, and the @Factory annotation, the framework dynamically generates test instances—one per website—allowing scalable and maintainable price-checking automation.
+Using Selenium WebDriver, TestNG, and the @Factory annotation, the framework generates one test instance per website for scalable and maintainable automation.
 
-After all tests run, a consolidated summary is produced showing:
+After the tests run, a summary is produced showing:
 	•	Cheapest price
 	•	Most expensive price
 	•	Average price
-	•	Detailed list of all collected prices
+	•	All collected prices
 
 ⸻
- Project Overview
 
-The framework is organized into three core components:
+Project Overview
 
 1. Test Generation (@Factory)
 
-PriceCheckFactory creates one PriceCheckTest instance per website, each containing:
+PriceCheckFactory creates a PriceCheckTest instance for each website, containing:
 	•	Website name
 	•	Product URL
-	•	Locator for the price element
+	•	Price locator
 
-This makes the test suite flexible and easy to extend.
+This makes the suite easy to extend to more sites.
+
+⸻
 
 2. Automated Price Extraction
 
 Each PriceCheckTest:
 	•	Launches Selenium WebDriver
-	•	Navigates to the product page
-	•	Locates and parses the price
-	•	Stores the result in PriceReport
+	•	Opens the product page
+	•	Locates and extracts the displayed price
+	•	Parses the numeric value
+	•	Stores it in PriceReport
+
+⸻
 
 3. Final Summary Report
 
-FinalReportTest runs after the suite completes and prints a clean, aggregated comparison.
+FinalReportTest runs after the entire suite completes and prints a clean, aggregated comparison.
 
 ⸻
-Running the Tests
 
-Execute the full price comparison suite using Maven:
+▶️ How to Run
+
+Use Maven to execute all tests:
 
 mvn test
+
+
 ⸻
 
 🛠️ Technologies Used
@@ -53,10 +60,9 @@ mvn test
 
 ⸻
 
-
 📌 Notes
-	•	The project is designed for easy expansion—add more websites by simply creating additional configurations.
-	•	Price parsing includes basic cleanup but may need adjustment depending on currency format.
-	•	Locators should be validated using browser DevTools.
+	•	Designed for easy expansion — add more sites by creating additional configurations.
+	•	Price parsing may require small adjustments depending on website currency format.
+	•	Locators should always be confirmed using browser DevTools.
 
-⸻
+
