@@ -1,36 +1,26 @@
 package org.example;
 
-import org.openqa.selenium.By;
-
 public class PriceComparison {
+    private String siteName;
+    private String url;
+    private String priceSelector; // Renamed to match your test method
 
-    private final String siteName;
-    private final String productUrl;
-    private final By priceLocator;
-
-    public PriceComparison(String siteName, String productUrl, By priceLocator) {
+    public PriceComparison(String siteName, String url, String priceSelector) {
         this.siteName = siteName;
-        this.productUrl = productUrl;
-        this.priceLocator = priceLocator;
+        this.url = url;
+        this.priceSelector = priceSelector;
     }
 
     public String getSiteName() {
         return siteName;
     }
 
-    public String getProductUrl() {
-        return productUrl;
+    public String getUrl() {
+        return url;
     }
 
-    public By getPriceLocator() {
-        return priceLocator;
-    }
-
-    @Override
-    public String toString() {
-        return "PriceComparison{" +
-                "siteName='" + siteName + '\'' +
-                ", productUrl='" + productUrl + '\'' +
-                '}';
+    // This is the method your test was missing
+    public String getPriceSelector() {
+        return priceSelector;
     }
 }

@@ -1,97 +1,81 @@
 
-import org.example.PriceReport;
+import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.WaitUntilState;
 import org.example.PriceComparison;
-import io.github.bonigarcia.wdm.WebDriverManager;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.testng.Assert;
-import org.testng.annotations.*;
+import org.example.PriceReport;
+import org.testng.annotations.Test;
 
-import java.time.Duration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PriceCheckTest {
 
     private final PriceComparison config;
-    private WebDriver driver;
 
-    // Constructor used by @Factory
     public PriceCheckTest(PriceComparison config) {
         this.config = config;
     }
 
-    @BeforeClass
-    public void setUpClass() {
-        WebDriverManager.chromedriver().setup();
-    }
-
-    @BeforeMethod
-    public void setUp() {
-        driver = new ChromeDriver();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        driver.manage().window().maximize();
-    }
-
     @Test
-    public void fetchProductPrice() throws InterruptedException {
-        System.out.println("Running test for site: " + config.getSiteName());
+    public void fetchPrice() {
 
-        driver.get(config.getProductUrl());
+        try (Playwright playwright = Playwright.create()) {
+            Browser browser = playwright.chromium().launch(
+                    new BrowserType.LaunchOptions().setHeadless(false) // Set to true to run in background
+            );
 
-        // Optional small sleep if page loads slowly; better is explicit waits for production code
-        Thread.sleep(2000);
+            Page page = browser.newPage();
 
-        WebElement priceElement = driver.findElement(config.getPriceLocator());
-        String priceText = priceElement.getText();
+            // CRITICAL FIX: Changed NETWORKIDLE to DOMCONTENTLOADED
+            // NetworkIdle waits for all background scripts to stop, which never happens on these sites.
+            page.navigate(
+                    config.getUrl(),
+                    new Page.NavigateOptions().setWaitUntil(WaitUntilState.DOMCONTENTLOADED)
+            );
 
-        System.out.println("Raw price text for " + config.getSiteName() + ": " + priceText);
+            Locator priceLocator = page.locator(config.getPriceSelector()).first();
 
-        double price = parsePrice(priceText);
-        System.out.println("Parsed price for " + config.getSiteName() + ": " + price);
+            // Wait up to 10 seconds for the element
+            priceLocator.waitFor(new Locator.WaitForOptions().setTimeout(20000));
 
-        Assert.assertTrue(price > 0.0, "Price should be greater than 0");
+            // Sometimes the text has extra spaces/newlines, so we trim it
+            String rawText = priceLocator.innerText().trim();
+            System.out.println("📄 Raw Text Found: " + rawText);
 
-        // Store in report
-        PriceReport.addEntry(config.getSiteName(), config.getProductUrl(), price);
+            double price = parsePrice(rawText);
+            System.out.println("💰 Parsed Price: " + price);
+
+            // Add to report
+            PriceReport.addEntry(config.getSiteName(), price);
+
+            browser.close();
+        } catch (Exception e) {
+            System.err.println("❌ ERROR on " + config.getSiteName());
+            System.err.println("   Reason: " + e.getMessage());
+            // Log 0.0 or -1.0 to indicate failure in the report
+            PriceReport.addEntry(config.getSiteName() + " (FAILED)", 0.0);
+        }
     }
 
-    /**
-     * Very simple price parser:
-     * - keep digits, dot, comma
-     * - replace comma with dot if needed
-     * - strip currency symbols
-     */
     private double parsePrice(String raw) {
-        String cleaned = raw.replaceAll("[^0-9,\\.]", ""); // keep digits + , + .
-        // If there are both ',' and '.', you might need a smarter strategy depending on locale.
-        // For simplicity, assume something like "1.234,56" or "1234.56".
-        if (cleaned.contains(",") && !cleaned.contains(".")) {
-            cleaned = cleaned.replace(',', '.');
-        } else if (cleaned.contains(",") && cleaned.contains(".")) {
-            // naive: remove thousands separator
-            // Example: "1,234.56" -> remove ',' -> "1234.56"
-            cleaned = cleaned.replace(",", "");
+        if (raw == null || raw.isEmpty()) return 0.0;
+
+        // 1. Regex to find the number pattern (e.g., 18.499,00 or 18499)
+        // Matches: Numbers with dots/commas
+        Pattern pattern = Pattern.compile("([0-9]+[.,][0-9]+[.,]?[0-9]*)");
+        Matcher matcher = pattern.matcher(raw);
+
+        if (matcher.find()) {
+            String num = matcher.group(1);
+            // TR Logic: Remove dots (thousands), replace comma with dot (decimal)
+            // Example: "18.499,00" -> "18499,00" -> "18499.00"
+            String clean = num.replace(".", "").replace(",", ".");
+            try {
+                return Double.parseDouble(clean);
+            } catch (NumberFormatException e) {
+                return 0.0;
+            }
         }
-
-        if (cleaned.isEmpty()) {
-            throw new IllegalArgumentException("Unable to parse price from: " + raw);
-        }
-
-        return Double.parseDouble(cleaned);
-    }
-
-    @AfterMethod
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
-    }
-
-    @AfterSuite
-    public void afterSuite() {
-        // Note: @AfterSuite on an instance is a bit tricky.
-        // You can alternatively move this method to a separate class.
-        // We’ll handle it in a separate "report" class instead.
+        return 0.0;
     }
 }

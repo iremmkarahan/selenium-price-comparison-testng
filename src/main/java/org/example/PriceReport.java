@@ -1,89 +1,70 @@
 package org.example;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
-import java.util.OptionalDouble;
 
 public class PriceReport {
 
-    public static class PriceEntry {
-        private final String siteName;
-        private final String productUrl;
-        private final double price;
+    private static List<Double> prices = Collections.synchronizedList(new ArrayList<>());
+    private static List<String> logs = Collections.synchronizedList(new ArrayList<>());
 
-        public PriceEntry(String siteName, String productUrl, double price) {
-            this.siteName = siteName;
-            this.productUrl = productUrl;
-            this.price = price;
-        }
 
-        public String getSiteName() {
-            return siteName;
-        }
-
-        public String getProductUrl() {
-            return productUrl;
-        }
-
-        public double getPrice() {
-            return price;
-        }
+    // This is the method your test was missing
+    public static void addEntry(String siteName, double price) {
+        prices.add(price);
+        logs.add("<li><strong>" + siteName + "</strong>: " + String.format("%.2f", price) + " TL</li>");
     }
 
-    private static final List<PriceEntry> entries = new ArrayList<>();
-
-    public static synchronized void addEntry(String siteName, String productUrl, double price) {
-        entries.add(new PriceEntry(siteName, productUrl, price));
+    public static void addPrice(String site, double price) {
+        prices.add(price);
+        logs.add("<tr><td style='color:green; font-weight:bold;'>✔ " + site + "</td><td>" + String.format("%.2f", price) + " TL</td></tr>");
     }
 
-    public static synchronized List<PriceEntry> getEntries() {
-        return new ArrayList<>(entries);
+    public static void logError(String site, String error) {
+        logs.add("<tr><td style='color:red; font-weight:bold;'>✘ " + site + "</td><td>" + error + "</td></tr>");
     }
 
-    public static synchronized void clear() {
-        entries.clear();
-    }
+    public static void generateReport() {
+        System.out.println("Generating Report...");
 
-    public static synchronized void printSummary() {
-        if (entries.isEmpty()) {
-            System.out.println("No price entries collected.");
-            return;
+        StringBuilder html = new StringBuilder();
+        html.append("<html><head><meta charset='UTF-8'>"); // CRITICAL for Turkish characters
+        html.append("<style>body{font-family: Arial, sans-serif; padding: 20px;} table{border-collapse: collapse; width: 80%;} td, th{border: 1px solid #ddd; padding: 10px;} th{background-color:#f4f4f4; text-align:left;}</style>");
+        html.append("</head><body>");
+        html.append("<h2>🛒 Apple Watch Series 11 - Price Report</h2>");
+        html.append("<table><tr><th>Website</th><th>Price / Status</th></tr>");
+
+        for (String log : logs) html.append(log);
+        html.append("</table>");
+
+        if (!prices.isEmpty()) {
+            double min = Collections.min(prices);
+            double max = Collections.max(prices);
+            double sum = 0;
+            for(double d : prices) sum += d;
+            double avg = sum / prices.size();
+
+            html.append("<h3>📊 Statistics</h3>");
+            html.append("<p><strong>Cheapest:</strong> " + String.format("%.2f", min) + " TL</p>");
+            html.append("<p><strong>Most Expensive:</strong> " + String.format("%.2f", max) + " TL</p>");
+            html.append("<p><strong>Average:</strong> " + String.format("%.2f", avg) + " TL</p>");
+        } else {
+            html.append("<h3>⚠️ No prices found. Check your Internet or Selectors.</h3>");
         }
+        html.append("</body></html>");
 
-        System.out.println("===== PRICE COMPARISON REPORT =====");
-        for (PriceEntry entry : entries) {
-            System.out.printf("Site: %-15s | Price: %.2f | URL: %s%n",
-                    entry.getSiteName(),
-                    entry.getPrice(),
-                    entry.getProductUrl());
+        // Force UTF-8 Encoding here
+        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream("PriceReport.html"), StandardCharsets.UTF_8))) {
+            writer.write(html.toString());
+            System.out.println("✅ Report created: PriceReport.html");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        // Cheapest
-        PriceEntry min = entries.stream()
-                .min(Comparator.comparingDouble(PriceEntry::getPrice))
-                .orElse(null);
-
-        // Most expensive
-        PriceEntry max = entries.stream()
-                .max(Comparator.comparingDouble(PriceEntry::getPrice))
-                .orElse(null);
-
-        // Average
-        OptionalDouble avg = entries.stream()
-                .mapToDouble(PriceEntry::getPrice)
-                .average();
-
-        System.out.println("------------------------------------");
-        if (min != null) {
-            System.out.printf("Cheapest     : %s (%.2f)%n", min.getSiteName(), min.getPrice());
-        }
-        if (max != null) {
-            System.out.printf("Most expensive: %s (%.2f)%n", max.getSiteName(), max.getPrice());
-        }
-        if (avg.isPresent()) {
-            System.out.printf("Average price: %.2f%n", avg.getAsDouble());
-        }
-        System.out.println("====================================");
     }
 }
